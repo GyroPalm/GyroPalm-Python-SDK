@@ -2,7 +2,7 @@
 # This is a basic example of how to use the GyroPalmRealtime SDK for Python
 
 import asyncio
-from gp_realtime import GyroPalmRealtime
+from gyropalm_control.gp_realtime import GyroPalmRealtime
 
 async def onGestureReceived(gestureID):
     print(f"Gesture ID: {gestureID}")

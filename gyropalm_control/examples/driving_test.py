@@ -2,8 +2,8 @@
 # This is an example of how to use the GyroPalmRealtime and GyroPalmDriving for Python
 
 import asyncio
-from gp_driving import GyroPalmDriving
-from gp_realtime import GyroPalmRealtime
+from gyropalm_control.gp_driving import GyroPalmDriving
+from gyropalm_control.gp_realtime import GyroPalmRealtime
 
 startControl = False
 

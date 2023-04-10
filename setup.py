@@ -5,7 +5,7 @@ with open('README.md', 'r', encoding='utf-8') as fh:
 
 setup(
     name='gyropalm_control',
-    version='1.0.1',
+    version='1.0.2',
     description='GyroPalm Python SDK for Robotic Control using Gestures',
     long_description=long_description,
     long_description_content_type='text/markdown',
