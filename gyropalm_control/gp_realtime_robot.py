@@ -17,6 +17,10 @@ class GyroPalmRealtimeRobot:
         self.onConnectionCallback = None
         self.ws = None
         self.lastSentPayload = time.time()
+        self.verbose = False
+
+    def setVerbose(self, verbose):
+        self.verbose = verbose
 
     def setOnGestureCallback(self, callback):
         self.onGestureCallback = callback
@@ -33,28 +37,32 @@ class GyroPalmRealtimeRobot:
             if time.time() - self.lastSentPayload > 1:
                 heartbeat = json.dumps({"action": "heartbeat"})
                 await ws.send(heartbeat)
-                print("%s\n" % heartbeat)
+                if self.verbose: print("%s\n" % heartbeat)
             else:
-                print("Skipped heartbeat \n")
+                if self.verbose: print("Skipped heartbeat \n")
             await asyncio.sleep(50)
 
     async def sendPayload(self, payload):
-        self.lastSentPayload = time.time()  # Update timestamp when payload sent
-        await self.ws.send(payload)
+        if self.ws is not None and self.ws.open:
+            self.lastSentPayload = time.time()  # Update timestamp when payload sent
+            payloadObj = json.dumps({"action": "pubRobot", "robotID": self.robotID, "sensorVal": payload})
+            await self.ws.send(payloadObj)
+        else:
+            if self.verbose: print("Cannot send. WebSocket is not connected \n")
 
-    async def loop(self):
+    async def main(self):
         async with websockets.connect("wss://gyropalm.com:3200", ssl=ssl._create_unverified_context()) as self.ws:
             welcomeMessage = await self.ws.recv()
             welcomeMessage = json.loads(welcomeMessage)
-            print("\n%s\n" % welcomeMessage)
+            if self.verbose: print("\n%s\n" % welcomeMessage)
 
             authorizationMessage = json.dumps({'action': "newRobot", 'robotID': self.robotID, 'secret': self.secret}, sort_keys=True, indent=4)
-            print("%s\n" % authorizationMessage)
+            if self.verbose: print("%s\n" % authorizationMessage)
             await self.ws.send(authorizationMessage)
 
             confirmationMessage = await self.ws.recv()
             confirmationMessage = json.loads(confirmationMessage)
-            print("%s\n" % confirmationMessage)
+            if self.verbose: print("%s\n" % confirmationMessage)
 
             # Initialize other tasks here as needed
 
@@ -67,24 +75,22 @@ class GyroPalmRealtimeRobot:
                 msg = json.loads(msg)
                 #print("%s" % msg)
 
-                if self.robotID in msg:
-                    payload_obj = json.loads(msg[self.robotID])
-                    if "gestureID" in payload_obj:
-                        if self.onGestureCallback:
-                            asyncio.ensure_future(self.onGestureCallback(payload_obj["gestureID"]))
-                    else:
-                        if self.onIncomingCallback:
-                            asyncio.ensure_future(self.onIncomingCallback(payload_obj))
+                if "action" in msg and "command" in msg:
+                    if msg["action"] == "data" and "command" in msg:
+                        try:
+                            payload_obj = json.loads(msg["command"])
+                            # Assuming payload_obj is valid JSON and contains the expected JSON data
+                            if "gestureID" in payload_obj:
+                                if self.onGestureCallback:
+                                    asyncio.ensure_future(self.onGestureCallback(payload_obj["gestureID"]))
+                            else:
+                                if self.onIncomingCallback:
+                                    asyncio.ensure_future(self.onIncomingCallback(payload_obj))
 
-                    if msg[self.robotID] == 'ping':
-                        print("pong")
+                        except json.JSONDecodeError:
+                            # Here, you can decide what to do if the command is not valid JSON
+                            if self.onIncomingCallback:
+                                asyncio.ensure_future(self.onIncomingCallback(msg["command"]))
 
-                if "action" in msg and "stat" in msg:
-                    if msg['action'] == 'info' and msg['stat'] == 'online':
-                        if self.onConnectionCallback:
-                            asyncio.ensure_future(self.onConnectionCallback(True))
-                    elif msg['action'] == 'info' and msg['stat'] == 'offline':
-                        if self.onConnectionCallback:
-                            asyncio.ensure_future(self.onConnectionCallback(False))
-
-
+                            if msg["command"] == 'ping':
+                                await self.sendPayload("pong")
