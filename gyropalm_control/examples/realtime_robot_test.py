@@ -20,6 +20,7 @@ counter = 0
 async def send_data_periodically(realtimeObj):
     global counter  # Use global variable for testing
     await realtimeObj.sendPayload("Robot Data " + str(counter))
+    print("Data published")
     counter += 1
 
 async def subscribe_to_robot(realtimeObj):
@@ -45,7 +46,7 @@ if __name__ == '__main__':
 
     ind = 0
     try:
-        gpRobot.run_task(subscribe_to_robot)      # Connect to another robot (Optional)
+        #gpRobot.run_task(subscribe_to_robot)      # Connect to another robot (Optional)
         while True:
             # Your code here to run repeatedly
             print("Hello World " + str(ind))
