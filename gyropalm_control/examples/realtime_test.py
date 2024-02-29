@@ -36,7 +36,7 @@ if __name__ == '__main__':
         loop.run_until_complete(
             asyncio.gather(
                 gyropalm.main(),  # Main routine which handles receiving data callbacks
-                send_data_periodically(gyropalm)  # Sub routine for sending data
+                send_data_periodically(gyropalm)  # Sub routine for sending data to wearable
             )
         )
     finally:
