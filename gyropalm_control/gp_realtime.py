@@ -43,7 +43,7 @@ class GyroPalmRealtime:
                 await ws.send(heartbeat)
                 if self.verbose: print("%s\n" % heartbeat)
             else:
-                if self.verbose: print("Skipped heartbeat \n")
+                if self.verbose: print("Skipped heartbeat. Connection active. \n")
             await asyncio.sleep(50)
 
     async def sendPayload(self, payload):

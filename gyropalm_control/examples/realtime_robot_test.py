@@ -11,6 +11,9 @@ async def onGestureReceived(gestureID):
 async def onIncoming(payload):
     print("Incoming: %s" % payload)
 
+async def onRobotIncoming(robotID, payload):
+    print(f"Robot {robotID}: {payload}")
+
 counter = 0
 
 async def send_data_periodically(realtimeObj):
@@ -20,6 +23,15 @@ async def send_data_periodically(realtimeObj):
         counter += 1
         await asyncio.sleep(2)  # Delay a couple seconds before sending (15 FPS max)
 
+async def subscribe_to_robot(realtimeObj):
+    while True:
+        print("Connecting to robot...")
+        is_connected = await realtimeObj.connectRobot("r123457", "c1122334455")
+        if is_connected == True:
+            print("Robot subscribed")
+            break
+        await asyncio.sleep(2)
+
 if __name__ == '__main__':
     robotID = "r123456"         # Update this to your robotID
     secret = "c1122334455"      # Update this to your robot's secret
@@ -27,14 +39,20 @@ if __name__ == '__main__':
     gpRobot.setVerbose(True)      # To enable debug messages. Comment out to disable.
     gpRobot.setOnGestureCallback(onGestureReceived)
     gpRobot.setOnIncomingCallback(onIncoming)
+    gpRobot.setOnRobotIncomingCallback(onRobotIncoming)
 
     loop = asyncio.get_event_loop()
     try:
         loop.run_until_complete(
-            asyncio.gather(
+            asyncio.gather(      # Run all the following in parallel:
                 gpRobot.main(),  # Main routine which handles receiving data callbacks
-                send_data_periodically(gpRobot)  # Sub routine for sending data
+                send_data_periodically(gpRobot),  # Sub routine for sending data
+                subscribe_to_robot(gpRobot)  # Subscribe to another robotID to receive/send messages
             )
         )
+    except KeyboardInterrupt:
+        # Handle program exit via KeyboardInterrupt (Ctrl+C)
+        print("Closing the connections gracefully...")
     finally:
+        loop.run_until_complete(gpRobot.cleanup())
         loop.close()
