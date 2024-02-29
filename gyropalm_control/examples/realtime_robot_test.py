@@ -3,6 +3,7 @@
 # Integrate this example into your robot control code
 
 import asyncio
+import time
 from gyropalm_control.gp_realtime_robot import GyroPalmRealtimeRobot
 
 async def onGestureReceived(gestureID):
@@ -17,11 +18,9 @@ async def onRobotIncoming(robotID, payload):
 counter = 0
 
 async def send_data_periodically(realtimeObj):
-    while True:
-        global counter  # Use global variable for testing
-        await realtimeObj.sendPayload("Robot Data " + str(counter))
-        counter += 1
-        await asyncio.sleep(2)  # Delay a couple seconds before sending (15 FPS max)
+    global counter  # Use global variable for testing
+    await realtimeObj.sendPayload("Robot Data " + str(counter))
+    counter += 1
 
 async def subscribe_to_robot(realtimeObj):
     while True:
@@ -40,19 +39,20 @@ if __name__ == '__main__':
     gpRobot.setOnGestureCallback(onGestureReceived)
     gpRobot.setOnIncomingCallback(onIncoming)
     gpRobot.setOnRobotIncomingCallback(onRobotIncoming)
+    gpRobot.setTickerFunction(send_data_periodically, interval=2) # Delay a couple seconds before sending (15 FPS max)
 
-    loop = asyncio.get_event_loop()
+    gpRobot.start()
+
+    ind = 0
     try:
-        loop.run_until_complete(
-            asyncio.gather(      # Run all the following in parallel:
-                gpRobot.main(),  # Main routine which handles receiving data callbacks
-                send_data_periodically(gpRobot),  # Sub routine for sending data
-                subscribe_to_robot(gpRobot)  # Subscribe to another robotID to receive/send messages
-            )
-        )
+        gpRobot.run_task(subscribe_to_robot)      # Connect to another robot (Optional)
+        while True:
+            # Your code here to run repeatedly
+            print("Hello World " + str(ind))
+            ind += 1
+            time.sleep(1)
     except KeyboardInterrupt:
         # Handle program exit via KeyboardInterrupt (Ctrl+C)
         print("Closing the connections gracefully...")
     finally:
-        loop.run_until_complete(gpRobot.cleanup())
-        loop.close()
+        gpRobot.stop()
